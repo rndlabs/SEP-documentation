@@ -1,17 +1,37 @@
 [book]
-authors = ["el figrafo"]
+authors = ["rndlabs.eth"]
 language = "en"
 multilingual = false
 src = "src"
-title = "SEP Documentation"
+title = "Service Exchange Protocol Documentation"
+description = "Service Exchange Protocol (SEP) documentation"
 
 [preprocessor]
 
 [preprocessor.mermaid]
-command = "mdbook-mermaid"
+cmd = "mdbook-mermaid"
 
 [output]
 
 [output.html]
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
+default-theme = "light"
+preferred-dark-theme = "ayu"
+curly-quotes = true
+mathjax-support = true
+copy-fonts = true
+git-repository-url = "https://github.com/rndlabs/sep-docs"
+git-repository-icon = "fa-github"
+
+[output.html.search]
+enable = true            # enables the search feature
+limit-results = 30       # maximum number of search results
+teaser-word-count = 30   # number of words used for a search result teaser
+use-boolean-and = true   # multiple search terms must all match
+boost-title = 2          # ranking boost factor for matches in headers
+boost-hierarchy = 1      # ranking boost factor for matches in page names
+boost-paragraph = 1      # ranking boost factor for matches in text
+expand = true            # partial words will match longer terms
+heading-split-level = 3  # link results to heading levels
+copy-js = true           # include Javascript code for search

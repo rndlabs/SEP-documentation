@@ -3,10 +3,10 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Quick-start - SEP Documentation</title>
+        <title>Quick-start - Service Exchange Protocol Documentation</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="">
+        <meta name="description" content="Service Exchange Protocol (SEP) documentation">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
@@ -25,12 +25,14 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     </head>
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "ayu" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -104,11 +106,14 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">SEP Documentation</h1>
+                    <h1 class="menu-title">Service Exchange Protocol Documentation</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rndlabs/sep-docs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                     </div>
                 </div>
@@ -135,6 +140,118 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="quick-start"><a class="header" href="#quick-start">Quick-start</a></h1>
+<p>When running the proof of concept, there are three features that need to be run simultaneously: the blockchain <a href="#hardhat-node">node</a>, the <a href="#server">real-world service provider</a>, and the <a href="#client">consumer</a>.</p>
+<h2 id="hardhat-node"><a class="header" href="#hardhat-node">Hardhat node</a></h2>
+<p>Clone the <code>sep-contracts</code> repository:</p>
+<pre><code class="language-bash">git clone https://github.com/rndlabs/sep-contracts
+</code></pre>
+<p>Install the dependencies:</p>
+<pre><code class="language-bash">cd sep-contracts
+yarn
+</code></pre>
+<p>Compile <code>typechain</code> artifacts:</p>
+<pre><code class="language-bash">yarn hardhat compile
+</code></pre>
+<p>Generate a <code>mnemonic</code> that you can use for test accounts. To do so, you can use <a href="https://iancoleman.io/bip39/">this BIP39 generator</a>. At the Mnemonic Code Converter:</p>
+<ul>
+<li>Select ‘24’ words from the drop-down box.</li>
+<li>Press ‘GENERATE’</li>
+<li>Copy the results of the <code>BIP39 Mnemonic</code> field to clipboard for the next step.</li>
+</ul>
+<p>Configure the environment variables (<code>.env</code>), within the cloned repository’s root directory to be similar to:</p>
+<pre><code class="language-raw title=&quot;.env&quot;"># network specific node uri : `&quot;ETH_NODE_URI_&quot; + networkName.toUpperCase()`
+ETH_NODE_URI_MAINNET=https://eth-mainnet.alchemyapi.io/v2/&lt;apiKey&gt;
+ETH_NODE_URI_SOKOL=https://sokol.poa.network
+ETH_NODE_URI_GNOSIS=https://rpc.xdaichain.com
+# generic node uri (if no specific found) :
+ETH_NODE_URI=https://{{networkName}}.infura.io/v3/&lt;apiKey&gt;
+
+# network specific mnemonic : `&quot;MNEMONIC_ &quot; + networkName.toUpperCase()`
+# MNEMONIC_MAINNET=&lt;mnemonic for mainnet&gt;
+# generic mnemonic (if no specific found):
+MNEMONIC=&lt;paste your mnemonic here with greater than/less than symbols&gt;
+
+# forking
+# HARDHAT_FORK=gnosis
+
+# coinmarketcap api key for gas report
+COINMARKETCAP_API_KEY=
+REPORT_GAS=true
+
+# Etherscan API key for automatic verification of contracts
+ETHERSCAN_API_KEY=
+</code></pre>
+<p>Now start the hardhat local blockchain for testing:</p>
+<pre><code class="language-bash">yarn hardhat node
+</code></pre>
+<p>When starting the hardhat local node, search through the console output for the address at which the <code>ServiceProvider</code> contract was deployed. Example:</p>
+<pre><code>deploying &quot;ServiceProvider&quot; (tx: 0x717c1eb6649abe7b92a0a2bead9b9f3b505da385980486283e5912ac90d699a9)...: deployed at 0x29b67856f9ca63dF5E688454B17F70Afd5071aa0 with 1758370 gas
+</code></pre>
+<p>In the above example, the <code>ServiceProvider</code> contract was deployed to <code>0x29b67856f9ca63dF5E688454B17F70Afd5071aa0</code>. Copy the address where it deployed on <strong>your</strong> local hardhat node as this will be used in subsequent configuration. For now though, your local blockchain node is running and ready to accept connections!</p>
+<h2 id="server"><a class="header" href="#server">Server</a></h2>
+<p>Open another terminal window and clone the <code>sep</code> repository.</p>
+<blockquote>
+<p>Be sure not to clone <code>sep</code> into the <code>sep-contracts</code> directory.</p>
+</blockquote>
+<pre><code class="language-bash">git clone https://github.com/rndlabs/sep
+</code></pre>
+<p>Install the dependencies:</p>
+<pre><code class="language-bash">yarn                  # installs lerna for monorepo
+yarn lerna bootstrap  # bootstrap packages
+</code></pre>
+<p>Change to the <code>demo</code> directory:</p>
+<pre><code class="language-bash">cd packages/demo
+</code></pre>
+<p>Generate the protobuf TypeScript:</p>
+<pre><code class="language-bash">yarn protoc --ts_out ./src/proto --proto_path ./src/proto ./src/proto/*
+</code></pre>
+<p>Copy over the <code>typechain</code> artifacts from the <code>sep-contracts</code> repo:</p>
+<pre><code class="language-bash">cp -pR path/to/sep-contracts/typechain .
+</code></pre>
+<p>Configure the environment varibles (<code>.env</code>) in the <code>demo</code> directory to be similar to:</p>
+<pre><code class="language-raw title=&quot;packages/demo/.env&quot;">MNEMONIC=&lt;paste your mnemonic from before here with greater than/less than symbols&gt;
+SERVER_KEY_INDEX=1
+CLIENT_KEY_INDEX=2
+RPC_URL=http://127.0.0.1:8545
+SEP_DAPP_NAME=sep-movi
+SEP_DAPP_VERSION=1
+REGISTRY_ADDRESS=&lt;fill in with deployment address from sep-contracts&gt;
+SELLER_NAME=Testing Seller
+SELLER_DATA_URI=http://testurl/
+SELLER_LOCATION=u173z
+</code></pre>
+<p>Now, you can start the <code>server</code>, and this will simulate being a service provider:</p>
+<pre><code class="language-bash">yarn ts-node ./src/server.ts
+</code></pre>
+<p>At this point, you should see the following activity:</p>
+<ol>
+<li>The <code>server</code> registers a test <code>seller</code>.</li>
+<li>The <code>server</code> registers 5 <code>space</code>s for the <code>sellerHash</code> from (1).</li>
+<li>The <code>server</code> connects to <code>Waku</code> to monitor applicable <code>content-topic</code>s.</li>
+</ol>
+<p>This activity will be visible on the <a href="#hardhat-node">node</a> as well as on the <code>server</code>.</p>
+<h2 id="client"><a class="header" href="#client">Client</a></h2>
+<p>Open another terminal window and change into the <code>demo</code> package’s directory:</p>
+<pre><code class="language-bash">cd path/to/demo
+</code></pre>
+<p>All the configuration for the <code>client</code> has already been done from the previous steps, so we can now run the <code>client</code> to make a query for a ride:</p>
+<pre><code class="language-bash">yarn ts-node ./src/client.ts
+</code></pre>
+<p>At this point, you should see the following activity:</p>
+<ol>
+<li>The <code>client</code> connects to <code>Waku</code> and asks (ping) for all <code>sellerHash</code> in a certain shard.</li>
+<li>The <code>server</code> responds (pong)with it’s <code>sellerHash</code> and some additional details.</li>
+<li>The <code>client</code> verifies the pong from the <code>server</code> against the <code>ServiceProvider</code> contract.</li>
+<li>The <code>client</code>, knowing there is a legitimate <code>seller</code>, asks for a stay with specific parameters (check-in, check-out, number of adults, number of children, number of spaces).</li>
+<li>The <code>server</code> receives the query from (4) and dispatches this to an <code>auctioneer</code> that takes the <code>ask</code> parameters as input. It’s then determined if the <code>seller</code> wants to make a <code>bid</code> for this business.</li>
+<li>The <code>server</code> crafts a <em>signed</em> bid to <code>client</code>.</li>
+<li>The <code>client</code> verifies the <code>server</code>’s bid, and chooses one of the offers.</li>
+<li>The <code>client</code> uses the bid’s <code>signature</code> to make the deal on-chain.</li>
+<li>The <code>server</code>, through event monitoring, can see that the <code>client</code> has made the deal. 🥳</li>
+</ol>
+<blockquote>
+<p>Sometimes there are connectivity issues to <code>Waku</code> from the <code>client</code>. Use <code>Ctrl + C</code> to terminate the <code>client</code> and start it again.</p>
+</blockquote>
 
                     </main>
 

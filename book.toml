@@ -1,0 +1,17 @@
+[book]
+authors = ["el figrafo"]
+language = "en"
+multilingual = false
+src = "src"
+title = "SEP Documentation"
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
+
+[output]
+
+[output.html]
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
+

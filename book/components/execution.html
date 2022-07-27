@@ -3,10 +3,10 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Execution - SEP Documentation</title>
+        <title>Execution - Service Exchange Protocol Documentation</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="">
+        <meta name="description" content="Service Exchange Protocol (SEP) documentation">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
@@ -25,12 +25,14 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     </head>
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "ayu" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -104,11 +106,14 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">SEP Documentation</h1>
+                    <h1 class="menu-title">Service Exchange Protocol Documentation</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rndlabs/sep-docs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                     </div>
                 </div>
@@ -135,6 +140,80 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="execution"><a class="header" href="#execution">Execution</a></h1>
+<h2 id="registries"><a class="header" href="#registries">Registries</a></h2>
+<p>There is a need for a <em>source of truth</em> as to what can be trusted in SEP. The registries broadly cover the areas of:</p>
+<ul>
+<li><a href="#industries">Industries</a></li>
+<li><a href="#document-timestamps">Document Timestamps</a></li>
+<li><a href="#service-providers">Service Providers</a></li>
+</ul>
+<blockquote>
+<p>For initial development phase of SEP, addresses will require whitelisting so that they may register a service provider with smart-contract enforced sunset clause for the whitelisting of <strong>180 days</strong> (ie. after which <em>anyone</em> may register). </p>
+</blockquote>
+<blockquote>
+<p>Reputation based scoring / assessment is <strong>OUTSIDE OF SCOPE</strong> for the initial development phase of SEP. During this phase, the SEP will <strong>NOT</strong> support terms that allow for the transfer of funds to service providers without intervention / consent of the consumer. Reputation base scoring / dispute settlement is targetted to be implemented after the cessation of the whitelist timeframe.</p>
+</blockquote>
+<h3 id="lines-industries"><a class="header" href="#lines-industries">Lines (Industries)</a></h3>
+<p>This registry provides a canonical source for line-specific state transition contracts that allow for the issuance of <code>stubs</code>, and subsequent state changes.</p>
+<p>The registry shall contain a bytes32 to address mapping for the industry-specific code (eg. “movi”) to the implementing contract. The registry shall also contain a mapping of industry to service provider to uint256. This is to be interpreted as a <code>can</code>, essentially indcating that the service provider providers a service in the specific industry, and the industry-specific terms they agree to are governed by the implementation.</p>
+<p>Protocol fees for the specific industry are stored within this contract.</p>
+<blockquote>
+<p>It is a requirement that the service provider has agreed to the industry-specific terms / life-cycle. If they cease to agree, and exit the industry, no <strong>NEW</strong> stub issuance may take place, but old stubs and their terms remain effective.</p>
+</blockquote>
+<p>The above method opens up the possibility to have sub-industry, or locale specific industry implementations, such as <code>movi-JP</code> for accommodation providers in Japan.</p>
+<h3 id="service-providers"><a class="header" href="#service-providers">Service Providers</a></h3>
+<p>The service provider registry allows consumers to:</p>
+<ol>
+<li>Find where to get industry-specific information about the service provider.</li>
+<li>Determine who is authorised to act in what role on behalf of the service provider.</li>
+<li>Determine when an authorised party was authorised, and if their authorisation is revoked, when it was revoked.</li>
+</ol>
+<h3 id="document-timestamps"><a class="header" href="#document-timestamps">Document Timestamps</a></h3>
+<p>Service providers store their information offline, saving on costly gas and allowing the system to remain storage system agnostic. In doing so, there is a need to determine the time at which a specific document was published.</p>
+<p>The document timestamp registry allows actors on the protocol to:</p>
+<ol>
+<li>Determine the time at which a document was created.</li>
+</ol>
+<blockquote>
+<p>Proof of ownership of the document is outside the scope of the timestamp registry.</p>
+</blockquote>
+<h2 id="accounting"><a class="header" href="#accounting">Accounting</a></h2>
+<p>Accounting of funds is handled by a centralised accounting contract, similar to the <code>vat</code> system as used in MakerDAO. The actual funds are held by <em>joiner</em> contracts. This allows for the system to limit the types of collateral / tokens that may be used to pay for stubs. There are three types of accounts that may own collateral managed within the <code>vat</code>:</p>
+<ol>
+<li>Service Providers (<code>bytes32</code>)</li>
+<li>Stubs (<code>bytes32</code>)</li>
+<li>Ethereum addresses (<code>address</code>)</li>
+</ol>
+<p>Funds are specified in mappings such that:</p>
+<ol>
+<li>For <code>bytes32</code> accounts: <code>mapping (bytes32 =&gt; mapping (address =&gt; uint256))</code></li>
+<li>For <code>address</code> accounts: <code>mapping (address =&gt; mapping (address =&gt; uint256))</code></li>
+</ol>
+<p>The zero address <code>token</code> MAY be implemented and represent the deployment chain’s native unit of account.</p>
+<blockquote>
+<p>As stubs may be resold on secondary markets, any collateral attached to them should move simultaneously, therefore the stub represents an account itself.</p>
+</blockquote>
+<p>Ownership of stubs is handled through a <code>stub</code> to <code>address</code> mapping:</p>
+<ul>
+<li><code>mapping (bytes32 =&gt; address)</code></li>
+</ul>
+<p>Similar to MakerDAO’s <code>vat</code>, root administrative contracts can be attached to the <code>vat</code> to allow custom movement of funds / stub ownership. This allows for future use cases such as a ProxyContract that implements zk ownership of a stub.</p>
+<p>Industrial lines (such as <code>stays</code>) will have an account within the <code>vat</code>. This account will be an <em>ethereum address</em> corresponding to the contract’s deployment address. This allows for the system to accrue protocol fees, and to account for these fees on a <em>per industry basis</em>, allowing the case of different protocol fees depending on an industry.</p>
+<h2 id="stubs"><a class="header" href="#stubs">Stubs</a></h2>
+<p>When a service provider and consumer come to an agreement, they make a <code>deal</code>. The result of this <code>deal</code> is a <em>stub</em> (voucher) that represents a future service to be delivered by the service provider to the consumer. This future service (<em>items</em>) is subject to <em>terms</em> and carries a specified <em>cost</em>. It is the role of the line (industry) contract to implement rules defining the <em>lifecycle</em> of their issued stubs.</p>
+<h3 id="items"><a class="header" href="#items">Items</a></h3>
+<p>An <code>item</code> array, in the <a href="primitives/primitives.html">primitive</a> sense.</p>
+<h3 id="terms"><a class="header" href="#terms">Terms</a></h3>
+<p>A <code>term</code> is a business logic primitive for Videre, and may be called by either party, depending on the <code>term</code>. For example there may be a <code>NO_REFUND_AFTER_CHECKIN</code> term where upon the <code>consumer</code> checks into the accommodation facility, the <code>service provider</code> may call the term to have the whole balance of funds transferred to themselves.</p>
+<p>Another example may be a <code>48HR_RAINCHECK</code> by which the stub may be fully refundable. The <code>consumer</code> could then call the <code>term</code> which would refund their payment provided the conditions were met.</p>
+<blockquote>
+<p>Careful consideration should be given to terms and the privacy implications that they may have.</p>
+</blockquote>
+<h2 id="utility"><a class="header" href="#utility">Utility</a></h2>
+<p>These are contracts that help with usability / specific cases.</p>
+<h3 id="nft-wrapper"><a class="header" href="#nft-wrapper">NFT Wrapper</a></h3>
+<p>A <code>stub</code> holder can transfer their <code>stub</code> to the NFTWrapper which then subsequently becomes the owner of the <code>stub</code> in the <code>vat</code>, though the respective NFT <code>tokenId</code> that is issued is minted to the stub holder.</p>
+<p>The wrapper would contain a <code>tokenId</code> to <code>stub</code> mapping, and <code>tokenId</code> to <code>owner</code> mapping. This wrapper should also proxy the <code>ILifeCycle</code> interface so that calls can just be forwarded directly from the token owner to the industry-specific life-cycle implementation.</p>
 
                     </main>
 

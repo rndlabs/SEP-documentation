@@ -3,10 +3,10 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Messaging - SEP Documentation</title>
+        <title>Messaging - Service Exchange Protocol Documentation</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="">
+        <meta name="description" content="Service Exchange Protocol (SEP) documentation">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
@@ -25,12 +25,14 @@
         <link rel="stylesheet" href="../ayu-highlight.css">
 
         <!-- Custom theme stylesheets -->
+        <!-- MathJax -->
+        <script async type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     </head>
     <body>
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "ayu" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -104,11 +106,14 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">SEP Documentation</h1>
+                    <h1 class="menu-title">Service Exchange Protocol Documentation</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/rndlabs/sep-docs" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                     </div>
                 </div>
@@ -135,6 +140,147 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="messaging"><a class="header" href="#messaging">Messaging</a></h1>
+<p>The protocol is designed to be messaging system <em>agnostic</em>. For the quick-start and proof-of-concept implementations, the messaging system used is <a href="https://waku.org/"><em>waku</em></a>. waku fulfills the design requirement for <em>anonymous, decentralised</em> messaging. In order to meet the design <em>transparency</em> design requirements, no attempts are made to obfuscate / encrypt data. <em>Authenticity</em> is asserted using payload signatures verified against a blockchain registry. </p>
+<h2 id="content-topics"><a class="header" href="#content-topics">Content Topics</a></h2>
+<p>All clients communicating on the SEP do so on <em>known</em> waku <code>contentTopic</code>s. The specification for a <code>contentTopic</code> in SEP covers:</p>
+<ul>
+<li><code>which</code> real-world industry the service is conducted in (eg. <em>movi</em>) for accommodation.</li>
+<li>A protocol <code>version</code> number to allow for graceful handling of protocol upgrades.</li>
+<li><code>what</code> the specific component for the API is (eg. <code>ping</code>).</li>
+<li><code>where</code> this interaction is taking place, defined by the industry implementation. For example, <code>movi</code> elects to implement this as an <a href="https://h3geo.org/"><code>h3Index</code></a>, whereas aviation may elect for this to be a bytes string such as <code>JKF-LHR</code>.</li>
+<li><code>how</code> the protocol is encoded, ie. <code>proto</code> for protobuf.</li>
+</ul>
+<p>A complete example:</p>
+<pre><code class="language-raw">/sep/movi/1/ping/8928308280fffff/proto
+
+which   = movi
+version = 1
+what    = ping
+where   = 8928308280fffff
+how     = proto
+</code></pre>
+<h2 id="messages"><a class="header" href="#messages">Messages</a></h2>
+<h3 id="discovery"><a class="header" href="#discovery">Discovery</a></h3>
+<p><strong>Content topics <em>‘what’</em></strong>: ping, pong</p>
+<pre><code class="language-protobuf">message Ping {
+  // timestamp when this ping was sent.
+  google.protobuf.Timestamp timestamp = 1;
+}
+
+message Pong {
+  // primitive serviceProvider.id
+  bytes serviceProvider = 1;
+  // the location where the services are provided - specified by the industry implementation
+  bytes loc = 2;
+  // timestamp when the pong was sent.
+  google.protobuf.Timestamp timestamp = 3;
+  // signature of a bidder signer for the service provider, verifiable on-chain
+  bytes signature = 4;
+}
+</code></pre>
+<blockquote>
+<p><strong>DO NOT ASSUME THAT TIMESTAMPS SENT VIA THE PROTOCOL ARE TRUSTWORTHY.</strong> </p>
+</blockquote>
+<h3 id="bid--ask-generic"><a class="header" href="#bid--ask-generic">Bid / Ask (Generic)</a></h3>
+<p><strong>Content topics <em>‘what’</em></strong>: bid, ask</p>
+<pre><code class="language-protobuf">message AskWrapper {
+  // random salt used to target bid
+  bytes salt = 1;
+  // the payload (ask) from the consumer to the service providers
+  bytes payload = 2;
+}
+
+message BidWrapper {
+  // primitive serviceProvider.id
+  bytes serviceProvider = 1;
+  // keccak(AskWrapper.salt &amp; AskWrapper.payload) for response filtering
+  bytes askDigest = 2;
+  // the payload (bid) from the service provider to the consumer
+  bytes payload = 3;
+  // bidder signs hash of fields (1,2,3)
+  bytes signature = 4;
+}
+
+message BidTerm {
+  // primitive term.id - terms by which the service is subject to
+  bytes term = 1;
+  // the contract address implementing ITerm
+  bytes impl = 2;
+  // abi encoded payload that may be passed to a contract implementing ITerm
+  optional bytes txPayload = 3;
+}
+
+// an optional item is an item that comes with an additional cost
+message BidOptionItem {
+  bytes item = 1;
+  repeated videre.type.ERC20Native cost = 2;
+  // bidder signs hash of fields (1, 2, askDigest)
+  bytes signature = 3;
+}
+
+// an optional term is a term that comes with an additional cost
+message BidOptionTerm {
+  BidTerm term = 1;
+  repeated videre.type.ERC20Native cost = 2;
+  // bidder signs hash of fields (1, 2, askDigest)
+  bytes signature = 3;
+}
+
+message BidOptions {
+  // optional items and/or terms that may be purchased
+  repeated BidOptionItem items = 1;
+  repeated BidOptionTerm terms = 2;
+}
+
+message BidLine {
+  // the item(s) offered in a bundled state, ie. space + breakfast
+  repeated bytes items = 1;
+  // the term(s) offered in a bundled state, ie. fully flexible + no cancellation
+  repeated BidTerm terms = 2;
+  // the option(s) offered, ie. add breakfast, add fully-flexible
+  BidOptions options = 3;
+  // the maximum number of times this bid authorisation can be used
+  uint32 limit = 4;
+  // the latest timestamp at which this bid is valid
+  uint32 expiry = 5;
+  // the cost in specified tokens or native unit of account
+  // TODO: expand to detailed cost structure
+  repeated videre.type.ERC20Native cost = 6; // include the capabilities for negative costs
+  // bidder signs hash (AskWrapper.salt, limit, expiry, serviceProvider (which), askDigest (params), items, terms, options, cost)
+  bytes signature = 7;
+}
+
+message Bids {
+  // bids that match the ask
+  repeated BidLine bids = 1;
+}
+</code></pre>
+<blockquote>
+<p><code>AskWrapper.payload</code> is defined as <code>bytes</code> to allow a generic, industry-agnostic bid / ask protocol to be defined. Specific ask parameters are defined in industry-specific protocol implementations of Videre.</p>
+</blockquote>
+<blockquote>
+<p><code>BidWrapper.payload</code> is defined as <code>bytes</code> for possible future expansion to industry-specific bid replies.</p>
+</blockquote>
+<h3 id="movi-ride-hailing-implementation"><a class="header" href="#movi-ride-hailing-implementation">movi (Ride-hailing implementation)</a></h3>
+<p>The quick-start / reference implementation for SEP is targetted at ride-hailing. Here we define the ask parameters used by <em>consumers</em>.</p>
+<h4 id="sep"><a class="header" href="#sep">SEP</a></h4>
+<ul>
+<li>Content-topic <code>where</code> and <code>loc</code> reply: For <code>movi</code>, this is implemented as an <a href="https://h3geo.org/"><code>h3Index</code></a>.</li>
+</ul>
+<h4 id="messages-1"><a class="header" href="#messages-1">Messages</a></h4>
+<pre><code class="language-protobuf">message moviAsk {
+  // the date of check-in for the stay
+  google.type.Date checkIn = 1;
+  // the date of check-out for the stay
+  google.type.Date checkOut = 2;
+  // the number of adults staying
+  uint32 numPaxAdult = 3;
+  // the number of children staying
+  optional uint32 numPaxChild = 4;
+  // the number of spaces (rooms)
+  uint32 numSpacesReq = 5;
+}
+</code></pre>
 
                     </main>
 

@@ -2,7 +2,7 @@
 
 ## Sequence Diagram
 
-![SEP Sequence Diagram](images/process.svg)
+![SEP Sequence Diagram](images/process.png)
 
 ## Verification
 

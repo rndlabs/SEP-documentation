@@ -15,6 +15,7 @@ mathjax-support = true
 copy-fonts = true
 git-repository-url = "https://github.com/rndlabs/sep-docs"
 git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/rndlabs/sep-docs/edit/main/{path}"
 additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [output.html.search]

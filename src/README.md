@@ -11,4 +11,3 @@ SEP aims to enable developers to build blockchain secured, consumer anonymous, p
 
 - [Quick-start](quickstart/quickstart.md)
 - [SEP Overview](overview/overview.md)
-

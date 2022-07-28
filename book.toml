@@ -6,15 +6,7 @@ src = "src"
 title = "Service Exchange Protocol Documentation"
 description = "Service Exchange Protocol (SEP) documentation"
 
-[preprocessor]
-
-[preprocessor.mermaid]
-cmd = "mdbook-mermaid"
-
-[output]
-
 [output.html]
-additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 default-theme = "light"
 preferred-dark-theme = "ayu"
@@ -23,6 +15,7 @@ mathjax-support = true
 copy-fonts = true
 git-repository-url = "https://github.com/rndlabs/sep-docs"
 git-repository-icon = "fa-github"
+additional-js = ["mermaid.min.js", "mermaid-init.js"]
 
 [output.html.search]
 enable = true            # enables the search feature
@@ -35,3 +28,8 @@ boost-paragraph = 1      # ranking boost factor for matches in text
 expand = true            # partial words will match longer terms
 heading-split-level = 3  # link results to heading levels
 copy-js = true           # include Javascript code for search
+
+[preprocessor]
+
+[preprocessor.mermaid]
+command = "mdbook-mermaid"
